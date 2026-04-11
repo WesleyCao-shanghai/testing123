@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>刷题</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Helvetica Neue',
+                   'Microsoft YaHei', sans-serif;
+      background: #f0f2f5;
+      color: #1f2937;
+      min-height: 100vh;
+    }
+
+    /* ── TOP BAR ─────────────────────────────────────────── */
+    .top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 10px 16px 8px;
+    }
+    .prog-meta {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      color: #6b7280;
+      margin-bottom: 7px;
+    }
+    .prog-bar {
+      height: 4px;
+      background: #e5e7eb;
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .prog-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #6366f1, #818cf8);
+      border-radius: 2px;
+      transition: width 0.35s ease;
+    }
+
+    /* ── FILTER BAR ──────────────────────────────────────── */
+    .filter-bar {
+      background: #fff;
+      border-bottom: 1px solid #e5e7eb;
+      padding: 8px 16px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      align-items: center;
+    }
+    .fsep {
+      width: 1px;
+      height: 18px;
+      background: #e5e7eb;
+      flex-shrink: 0;
+    }
+    .fbtn {
+      padding: 3px 11px;
+      border-radius: 20px;
+      border: 1px solid #d1d5db;
+      background: #fff;
+      font-size: 12px;
+      cursor: pointer;
+      color: #6b7280;
+      transition: all 0.12s;
+      white-space: nowrap;
+      line-height: 1.7;
+      font-family: inherit;
+    }
+    .fbtn:hover       { border-color: #6366f1; color: #4338ca; }
+    .fbtn.fa          { background: #6366f1; border-color: #6366f1; color: #fff; }
+    .fbtn.fa-warn     { background: #f59e0b; border-color: #f59e0b; color: #fff; }
+
+    /* ── MAIN ────────────────────────────────────────────── */
+    .main {
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 16px 16px 24px;
+    }
+
+    /* ── QUESTION CARD ───────────────────────────────────── */
+    .q-card {
+      background: #fff;
+      border-radius: 14px;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+      padding: 22px 20px 20px;
+      margin-bottom: 12px;
+    }
+
+    .q-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-bottom: 14px;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 9px;
+      border-radius: 20px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1.7;
+    }
+    .b-type  { background: #ede9fe; color: #5b21b6; }
+    .b-hf    { background: #fee2e2; color: #b91c1c; }
+    .b-lf    { background: #f3f4f6; color: #6b7280; }
+    .b-ok    { background: #d1fae5; color: #065f46; }
+    .b-no    { background: #fff7ed; color: #9a3412; }
+
+    .q-num {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-bottom: 8px;
+    }
+
+    .q-stem {
+      font-size: 15.5px;
+      line-height: 1.8;
+      color: #111827;
+      margin-bottom: 18px;
+      white-space: pre-wrap;
+    }
+
+    /* ── OPTIONS ────────────────────────────────────────── */
+    .options { display: flex; flex-direction: column; gap: 9px; }
+
+    .opt {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 13px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 9px;
+      background: #fff;
+      cursor: pointer;
+      text-align: left;
+      font-size: 14px;
+      color: #374151;
+      transition: border-color 0.12s, background 0.12s, color 0.12s;
+      width: 100%;
+      line-height: 1.55;
+      font-family: inherit;
+    }
+    .opt:hover:not(:disabled)  { border-color: #818cf8; background: #f5f3ff; }
+    .opt.sel     { border-color: #6366f1; background: #eef2ff; color: #3730a3; }
+    .opt.correct { border-color: #10b981; background: #ecfdf5; color: #065f46; }
+    .opt.missed  { border-color: #10b981; background: #ecfdf5; color: #065f46; opacity: 0.85; }
+    .opt.wrong   { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
+    .opt-key { font-weight: 700; flex-shrink: 0; min-width: 20px; }
+
+    /* ── TRUE / FALSE ───────────────────────────────────── */
+    .tf-wrap { display: flex; gap: 12px; }
+    .tf {
+      flex: 1;
+      padding: 14px 10px;
+      border: 1.5px solid #e5e7eb;
+      border-radius: 9px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 15px;
+      font-weight: 600;
+      transition: border-color 0.12s, background 0.12s, color 0.12s;
+      font-family: inherit;
+    }
+    .tf:hover:not(:disabled)  { border-color: #818cf8; background: #f5f3ff; }
+    .tf.sel     { border-color: #6366f1; background: #eef2ff; color: #3730a3; }
+    .tf.correct { border-color: #10b981; background: #ecfdf5; color: #065f46; }
+    .tf.wrong   { border-color: #ef4444; background: #fef2f2; color: #991b1b; }
+
+    /* ── HINT (for multiple choice) ─────────────────────── */
+    .multi-hint {
+      font-size: 11px;
+      color: #9ca3af;
+      margin-top: 8px;
+      padding-left: 2px;
+    }
+
+    /* ── REVEAL BUTTON ──────────────────────────────────── */
+    .reveal-btn {
+      width: 100%;
+      margin-top: 16px;
+      padding: 12px;
+      background: #6366f1;
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 14.5px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.12s;
+      font-family: inherit;
+    }
+    .reveal-btn:hover { background: #4f46e5; }
+
+    /* ── ANSWER BOX ─────────────────────────────────────── */
+    .ans-box {
+      margin-top: 16px;
+      padding: 13px 15px;
+      background: #f8fafc;
+      border-radius: 9px;
+      border-left: 3px solid #6366f1;
+    }
+    .ans-label { font-size: 11px; color: #6b7280; margin-bottom: 4px; }
+    .ans-val   { font-size: 15px; font-weight: 700; color: #1f2937; }
+    .ans-exp {
+      font-size: 13px;
+      color: #4b5563;
+      line-height: 1.65;
+      margin-top: 9px;
+      padding-top: 9px;
+      border-top: 1px solid #e5e7eb;
+      white-space: pre-wrap;
+    }
+
+    /* ── NAV ROW ────────────────────────────────────────── */
+    .nav-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+    .nav-sp { flex: 1; }
+
+    .nbtn {
+      padding: 10px 15px;
+      border-radius: 9px;
+      border: 1.5px solid #e5e7eb;
+      background: #fff;
+      cursor: pointer;
+      font-size: 13px;
+      font-weight: 600;
+      transition: all 0.12s;
+      white-space: nowrap;
+      font-family: inherit;
+      color: #374151;
+    }
+    .nbtn:disabled { opacity: 0.3; cursor: not-allowed; }
+    .nbtn-dir:hover:not(:disabled) { border-color: #6366f1; color: #4338ca; }
+    .nbtn-ok  { background: #10b981; border-color: #10b981; color: #fff; }
+    .nbtn-ok:hover:not(:disabled)  { background: #059669; border-color: #059669; }
+    .nbtn-bad { background: #f59e0b; border-color: #f59e0b; color: #fff; }
+    .nbtn-bad:hover:not(:disabled) { background: #d97706; border-color: #d97706; }
+
+    /* ── EMPTY / ERROR ──────────────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 60px 0 50px;
+      color: #9ca3af;
+    }
+    .empty-icon { font-size: 46px; margin-bottom: 12px; }
+    .empty-sub  { font-size: 13px; margin-top: 6px; }
+
+    .err-box {
+      background: #fef2f2;
+      border: 1px solid #fca5a5;
+      border-radius: 10px;
+      padding: 18px;
+      font-size: 13.5px;
+      color: #7f1d1d;
+      line-height: 1.7;
+    }
+    .err-box code {
+      background: #fecaca;
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-family: 'Menlo', 'Consolas', monospace;
+      font-size: 12px;
+    }
+
+    /* ── STATS ROW ──────────────────────────────────────── */
+    .stats-row {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 12px;
+      flex-wrap: wrap;
+    }
+    .stat-chip {
+      font-size: 12px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      border: 1px solid #e5e7eb;
+      background: #fff;
+      color: #6b7280;
+    }
+
+    @media (max-width: 480px) {
+      .main   { padding: 12px 12px 20px; }
+      .q-card { padding: 16px 14px; }
+      .q-stem { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- TOP BAR -->
+<div class="top-bar">
+  <div class="prog-meta">
+    <span id="prog-left">加载中…</span>
+    <span id="prog-right"></span>
+  </div>
+  <div class="prog-bar">
+    <div class="prog-fill" id="prog-fill" style="width:0%"></div>
+  </div>
+</div>
+
+<!-- FILTER BAR -->
+<div class="filter-bar">
+  <button class="fbtn fa" data-freq="all"       onclick="setFreq('all')">全部</button>
+  <button class="fbtn"    data-freq="high"      onclick="setFreq('high')">🔥 高频</button>
+  <button class="fbtn"    data-freq="low"       onclick="setFreq('low')">低频</button>
+  <div class="fsep"></div>
+  <button class="fbtn fa" data-qtype="all"      onclick="setType('all')">全部题型</button>
+  <button class="fbtn"    data-qtype="single"   onclick="setType('single')">单选</button>
+  <button class="fbtn"    data-qtype="multiple" onclick="setType('multiple')">多选</button>
+  <button class="fbtn"    data-qtype="truefalse" onclick="setType('truefalse')">判断</button>
+  <div class="fsep"></div>
+  <button class="fbtn" id="btn-only-new"  onclick="toggleOnlyUnmastered()">仅未掌握</button>
+  <button class="fbtn" id="btn-shuffle"   onclick="toggleShuffle()">乱序</button>
+  <button class="fbtn" id="btn-reset"     onclick="confirmReset()" style="margin-left:auto">清除记录</button>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <div class="stats-row" id="stats-row"></div>
+  <div id="q-container"></div>
+  <div class="nav-row">
+    <button class="nbtn nbtn-dir" id="btn-prev" onclick="goPrev()">← 上一题</button>
+    <div class="nav-sp"></div>
+    <button class="nbtn nbtn-ok"  id="btn-ok"  onclick="markMastery(true)">已掌握 ✓</button>
+    <button class="nbtn nbtn-bad" id="btn-bad" onclick="markMastery(false)">未掌握 ✗</button>
+    <div class="nav-sp"></div>
+    <button class="nbtn nbtn-dir" id="btn-next" onclick="goNext()">下一题 →</button>
+  </div>
+</div>
+
+<script>
+// ── STATE ────────────────────────────────────────────────────────────────────
+let allQ  = [];
+let meta  = { high_freq_threshold: 3 };
+let filt  = [];      // filtered + ordered subset
+let idx   = 0;
+let mastery = {};    // { [id]: true | false }
+let sel   = new Set();
+let revealed = false;
+
+const F = { freq: 'all', type: 'all', onlyUnmastered: false, shuffle: false };
+
+// ── BOOTSTRAP ────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  loadMastery();
+  await loadData();
+});
+
+async function loadData() {
+  try {
+    const res = await fetch('questions.json');
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
+    const data = await res.json();
+    meta = Object.assign(meta, data.meta || {});
+    allQ = data.questions || [];
+    applyFilters();
+    render();
+  } catch (e) {
+    showError(e);
+  }
+}
+
+// ── MASTERY ──────────────────────────────────────────────────────────────────
+function loadMastery() {
+  try { mastery = JSON.parse(localStorage.getItem('quiz_mastery') || '{}'); }
+  catch { mastery = {}; }
+}
+function saveMastery() {
+  localStorage.setItem('quiz_mastery', JSON.stringify(mastery));
+}
+function confirmReset() {
+  if (confirm('确定要清除所有已掌握/未掌握记录吗？')) {
+    mastery = {};
+    saveMastery();
+    applyFilters();
+    render();
+  }
+}
+
+// ── FILTERS ──────────────────────────────────────────────────────────────────
+function applyFilters() {
+  let qs = [...allQ];
+  if (F.freq === 'high') qs = qs.filter(q => q.frequency >= meta.high_freq_threshold);
+  if (F.freq === 'low')  qs = qs.filter(q => q.frequency <  meta.high_freq_threshold);
+  if (F.type !== 'all')  qs = qs.filter(q => q.type === F.type);
+  if (F.onlyUnmastered)  qs = qs.filter(q => mastery[q.id] !== true);
+  if (F.shuffle)         qs.sort(() => Math.random() - 0.5);
+  filt = qs;
+  if (idx >= filt.length) idx = 0;
+  resetAnswer();
+}
+
+function setFreq(v) {
+  F.freq = v;
+  document.querySelectorAll('[data-freq]').forEach(b =>
+    b.classList.toggle('fa', b.dataset.freq === v));
+  applyFilters(); render();
+}
+function setType(v) {
+  F.type = v;
+  document.querySelectorAll('[data-qtype]').forEach(b =>
+    b.classList.toggle('fa', b.dataset.qtype === v));
+  applyFilters(); render();
+}
+function toggleOnlyUnmastered() {
+  F.onlyUnmastered = !F.onlyUnmastered;
+  document.getElementById('btn-only-new').classList.toggle('fa-warn', F.onlyUnmastered);
+  applyFilters(); render();
+}
+function toggleShuffle() {
+  F.shuffle = !F.shuffle;
+  document.getElementById('btn-shuffle').classList.toggle('fa', F.shuffle);
+  applyFilters(); render();
+}
+
+// ── NAVIGATION ───────────────────────────────────────────────────────────────
+function goPrev() {
+  if (idx > 0) { idx--; resetAnswer(); render(); }
+}
+function goNext() {
+  if (idx < filt.length - 1) { idx++; resetAnswer(); render(); }
+}
+function resetAnswer() { sel = new Set(); revealed = false; }
+
+function markMastery(val) {
+  const q = filt[idx];
+  if (!q) return;
+  mastery[q.id] = val;
+  saveMastery();
+  if (F.onlyUnmastered && val === true) {
+    // Remove from current list without re-shuffling
+    filt.splice(idx, 1);
+    if (idx >= filt.length && filt.length > 0) idx = filt.length - 1;
+    resetAnswer();
+  }
+  render();
+}
+
+// ── INTERACTION ──────────────────────────────────────────────────────────────
+function toggleOption(key) {
+  if (revealed) return;
+  const q = filt[idx];
+  if (!q) return;
+  if (q.type === 'single' || q.type === 'truefalse') {
+    sel = new Set([key]);
+  } else {
+    sel.has(key) ? sel.delete(key) : sel.add(key);
+  }
+  renderQuestion();
+}
+
+function revealAnswer() {
+  revealed = true;
+  renderQuestion();
+}
+
+// ── RENDER ───────────────────────────────────────────────────────────────────
+function render() {
+  renderProgress();
+  renderStats();
+  renderQuestion();
+  renderNav();
+}
+
+function renderProgress() {
+  const total = filt.length;
+  const cur   = total > 0 ? idx + 1 : 0;
+  const mc    = Object.values(mastery).filter(Boolean).length;
+  document.getElementById('prog-left').textContent =
+    total > 0 ? `第 ${cur} 题 / 共 ${total} 题` : '无符合条件的题目';
+  document.getElementById('prog-right').textContent =
+    `已掌握 ${mc} / ${allQ.length}`;
+  const pct = total > 1 ? (idx / (total - 1) * 100) : (total === 1 ? 100 : 0);
+  document.getElementById('prog-fill').style.width = pct + '%';
+}
+
+function renderStats() {
+  const hfCount = allQ.filter(q => q.frequency >= meta.high_freq_threshold).length;
+  const mc      = Object.values(mastery).filter(Boolean).length;
+  const uc      = Object.values(mastery).filter(v => v === false).length;
+  document.getElementById('stats-row').innerHTML = `
+    <span class="stat-chip">🔥 高频 ${hfCount} 题</span>
+    <span class="stat-chip">✓ 已掌握 ${mc} 题</span>
+    <span class="stat-chip">✗ 未掌握 ${uc} 题</span>
+    <span class="stat-chip">○ 未做 ${allQ.length - mc - uc} 题</span>
+  `;
+}
+
+function renderQuestion() {
+  const el = document.getElementById('q-container');
+  const q  = filt[idx];
+
+  if (!q) {
+    el.innerHTML = `
+      <div class="q-card">
+        <div class="empty">
+          <div class="empty-icon">📭</div>
+          <div>没有符合条件的题目</div>
+          <div class="empty-sub" style="color:#d1d5db">请调整上方筛选条件</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const typeLabel = { single: '单选题', multiple: '多选题', truefalse: '判断题' }[q.type] || q.type;
+  const hf        = q.frequency >= meta.high_freq_threshold;
+  const mStatus   = mastery[q.id];
+
+  const badges = `
+    <div class="q-badges">
+      <span class="badge b-type">${typeLabel}</span>
+      <span class="badge ${hf ? 'b-hf' : 'b-lf'}">${hf ? '🔥 高频' : '低频'}（出现 ${q.frequency} 次）</span>
+      ${mStatus === true  ? '<span class="badge b-ok">✓ 已掌握</span>' : ''}
+      ${mStatus === false ? '<span class="badge b-no">✗ 未掌握</span>' : ''}
+    </div>`;
+
+  const body = q.type === 'truefalse' ? buildTF(q) : buildOptions(q);
+
+  const multiHint = (!revealed && q.type === 'multiple')
+    ? `<div class="multi-hint">多选题，可选多个选项</div>` : '';
+
+  const revBtn = revealed ? '' :
+    `<button class="reveal-btn" onclick="revealAnswer()">显示答案</button>`;
+
+  let ansHtml = '';
+  if (revealed) {
+    const dispAns = q.type === 'truefalse'
+      ? (q.answer === 'true' ? '✓ 正确' : '✗ 错误')
+      : q.answer;
+    ansHtml = `
+      <div class="ans-box">
+        <div class="ans-label">正确答案</div>
+        <div class="ans-val">${dispAns}</div>
+        ${q.explanation ? `<div class="ans-exp">${escHtml(q.explanation)}</div>` : ''}
+      </div>`;
+  }
+
+  el.innerHTML = `
+    <div class="q-card">
+      ${badges}
+      <div class="q-stem">${escHtml(q.stem)}</div>
+      ${body}
+      ${multiHint}
+      ${revBtn}
+      ${ansHtml}
+    </div>`;
+}
+
+function buildOptions(q) {
+  if (!q.options) return '';
+  const correctKeys = new Set((q.answer || '').split(''));
+  let html = '<div class="options">';
+  for (const [k, v] of Object.entries(q.options)) {
+    const isSelected = sel.has(k);
+    const isCorrect  = correctKeys.has(k);
+    let cls = 'opt';
+    if (revealed) {
+      if (isCorrect && isSelected)  cls += ' correct';
+      else if (isCorrect)           cls += ' missed';
+      else if (isSelected)          cls += ' wrong';
+    } else if (isSelected) {
+      cls += ' sel';
+    }
+    html += `
+      <button class="${cls}" onclick="toggleOption('${k}')" ${revealed ? 'disabled' : ''}>
+        <span class="opt-key">${k}.</span><span>${escHtml(v)}</span>
+      </button>`;
+  }
+  html += '</div>';
+  return html;
+}
+
+function buildTF(q) {
+  const makeClass = (key) => {
+    let c = 'tf';
+    if (revealed) {
+      if (key === q.answer)  c += ' correct';
+      else if (sel.has(key)) c += ' wrong';
+    } else if (sel.has(key)) {
+      c += ' sel';
+    }
+    return c;
+  };
+  return `
+    <div class="tf-wrap">
+      <button class="${makeClass('true')}"  onclick="toggleOption('true')"  ${revealed ? 'disabled' : ''}>✓ 正确</button>
+      <button class="${makeClass('false')}" onclick="toggleOption('false')" ${revealed ? 'disabled' : ''}>✗ 错误</button>
+    </div>`;
+}
+
+function renderNav() {
+  const q = filt[idx];
+  document.getElementById('btn-prev').disabled = idx <= 0;
+  document.getElementById('btn-next').disabled = idx >= filt.length - 1;
+  const noQ = !q;
+  document.getElementById('btn-ok').disabled  = noQ;
+  document.getElementById('btn-bad').disabled = noQ;
+  if (q) {
+    document.getElementById('btn-ok').style.opacity  = mastery[q.id] === true  ? '1' : '0.6';
+    document.getElementById('btn-bad').style.opacity = mastery[q.id] === false ? '1' : '0.6';
+  }
+}
+
+function showError(e) {
+  document.getElementById('prog-left').textContent = '加载失败';
+  document.getElementById('q-container').innerHTML = `
+    <div class="q-card">
+      <div class="err-box">
+        <strong>无法加载题目数据</strong><br><br>
+        错误：${escHtml(e.message)}<br><br>
+        请确保：<br>
+        1. <code>questions.json</code> 与 <code>quiz.html</code> 在同一目录下<br>
+        2. 通过本地服务器访问，而非直接双击文件（浏览器安全限制）：<br><br>
+        &emsp;<code>python3 -m http.server 8080</code><br><br>
+        然后在浏览器中打开 <code>http://localhost:8080/quiz.html</code>
+      </div>
+    </div>`;
+}
+
+function escHtml(s) {
+  return String(s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+</script>
+</body>
+</html>

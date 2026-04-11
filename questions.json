@@ -1,0 +1,45 @@
+{
+  "meta": {
+    "total_exams": 8,
+    "high_freq_threshold": 3
+  },
+  "questions": [
+    {
+      "id": 1,
+      "type": "single",
+      "stem": "在此填入题干文字",
+      "options": {
+        "A": "选项A",
+        "B": "选项B",
+        "C": "选项C",
+        "D": "选项D"
+      },
+      "answer": "A",
+      "frequency": 1,
+      "explanation": "（可选）解析文字，留空则不显示"
+    },
+    {
+      "id": 2,
+      "type": "multiple",
+      "stem": "多选题题干，答案填多个字母如 AC 或 ABD",
+      "options": {
+        "A": "选项A",
+        "B": "选项B",
+        "C": "选项C",
+        "D": "选项D"
+      },
+      "answer": "AC",
+      "frequency": 1,
+      "explanation": ""
+    },
+    {
+      "id": 3,
+      "type": "truefalse",
+      "stem": "判断题题干，答案为 true（正确）或 false（错误）",
+      "options": null,
+      "answer": "true",
+      "frequency": 1,
+      "explanation": ""
+    }
+  ]
+}
