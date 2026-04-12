@@ -298,9 +298,18 @@ def parse_text(raw_text: str, colored_texts: set = None) -> list[Question]:
         stem_lines  = []
         in_exp      = False
 
+        last_opt_before_blank = None   # 空行紧跟其后的选项 → 正确答案
+        prev_was_opt = None            # 上一个非空行是否为选项行（及其 key）
+
         for line in block.splitlines():
+            raw_line = line
             line = line.strip()
+
+            # 空行：记录"上一个选项"作为候选答案
             if not line:
+                if prev_was_opt:
+                    last_opt_before_blank = prev_was_opt
+                prev_was_opt = None
                 continue
 
             # 解析/解题思路 → 后续归入 explanation
@@ -340,7 +349,10 @@ def parse_text(raw_text: str, colored_texts: set = None) -> list[Question]:
                 key = om.group(1).upper()
                 val = om.group(2).strip()
                 q.options[key] = val
+                prev_was_opt = key
                 continue
+
+            prev_was_opt = None
 
             # 题干行（默认）
             if not q.options:
@@ -375,6 +387,10 @@ def parse_text(raw_text: str, colored_texts: set = None) -> list[Question]:
         # ── 6f. 从独立答案区补充 ──
         if not q.answer and qnum in standalone:
             q.answer = norm_answer(standalone[qnum], q.type)
+
+        # ── 6g. 空行推断：正确选项后面紧跟空行（律师云学院格式）──
+        if not q.answer and last_opt_before_blank and q.options:
+            q.answer = norm_answer(last_opt_before_blank, q.type or 'single')
 
         q.finalize()
         if q.is_valid():
