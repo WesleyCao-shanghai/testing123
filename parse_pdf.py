@@ -118,9 +118,19 @@ RE_SECTION = re.compile(
     re.IGNORECASE
 )
 
-# 答案标签（题目内嵌）
+# 题目内嵌类型标签：【单选】【多选】【判断】（律师云学院格式）
+RE_INLINE_TYPE = re.compile(r'^【(单选|多选|判断)】\s*')
+
+# 答案标签（通用格式）
 RE_ANS_LABEL = re.compile(
     r'(?:【?(?:正确|参考)?答案】?|答案\s*[：:])\s*'
+    r'([A-Da-d]{1,4}|[√×✓✗对错正确错误]{1,2})',
+    re.IGNORECASE
+)
+
+# 律师云学院：答错时显示 "回答错误！正确答案是：A"
+RE_ANS_WRONG = re.compile(
+    r'回答错误\s*[！!]\s*正确答案\s*[是为]?\s*[：:]\s*'
     r'([A-Da-d]{1,4}|[√×✓✗对错正确错误]{1,2})',
     re.IGNORECASE
 )
@@ -288,15 +298,23 @@ def parse_text(raw_text: str) -> list[Question]:
                 continue
 
             if in_exp:
-                # 在解析区，如果碰到答案标签则提取
                 am = RE_ANS_LABEL.search(line)
+                wm = RE_ANS_WRONG.search(line)
                 if am:
                     q.answer = norm_answer(am.group(1), q.type)
+                elif wm:
+                    q.answer = norm_answer(wm.group(1), q.type)
                 else:
                     q.explanation += line + ' '
                 continue
 
-            # 答案标签行
+            # 律师云学院：回答错误提示行（含正确答案）
+            wm = RE_ANS_WRONG.search(line)
+            if wm:
+                q.answer = norm_answer(wm.group(1), q.type)
+                continue
+
+            # 通用答案标签行
             am = RE_ANS_LABEL.search(line)
             if am and not RE_OPT.match(line):
                 q.answer = norm_answer(am.group(1), q.type)
@@ -311,8 +329,17 @@ def parse_text(raw_text: str) -> list[Question]:
                 continue
 
             # 题干行（默认）
-            if not q.options:  # 还没遇到选项，仍是题干
-                stem_lines.append(line)
+            if not q.options:
+                # 提取内嵌题型标签 【单选】【多选】【判断】
+                tm = RE_INLINE_TYPE.match(line)
+                if tm:
+                    tag = tm.group(1)
+                    if tag == '单选':   q.type = 'single'
+                    elif tag == '多选': q.type = 'multiple'
+                    elif tag == '判断': q.type = 'truefalse'
+                    line = RE_INLINE_TYPE.sub('', line).strip()
+                if line:
+                    stem_lines.append(line)
 
         q.stem = ' '.join(stem_lines)
 
