@@ -23,27 +23,41 @@ DEBUG = '--debug' in sys.argv
 try:
     import fitz  # PyMuPDF
 
-    def extract_text(path: Path) -> str:
+    def extract_text(path: Path):
+        """返回 (纯文字, 彩色文字集合)。彩色文字 = 非黑非白的文本跨度。"""
         doc  = fitz.open(str(path))
         pages = []
+        colored = set()
+
         for page in doc:
-            t = page.get_text("text")
-            if t:
-                pages.append(t)
-        return "\n".join(pages)
+            pages.append(page.get_text("text"))
+            try:
+                for block in page.get_text("dict", flags=0).get("blocks", []):
+                    for line in block.get("lines", []):
+                        for span in line.get("spans", []):
+                            color = span.get("color", 0)
+                            # 跳过黑色(0)和白色(0xFFFFFF)
+                            if color not in (0, 16777215):
+                                t = to_half(span["text"]).strip()
+                                if len(t) > 1:
+                                    colored.add(t)
+            except Exception:
+                pass
+
+        return "\n".join(pages), colored
 
 except ImportError:
     try:
         import pdfplumber
 
-        def extract_text(path: Path) -> str:
+        def extract_text(path: Path):
             pages = []
             with pdfplumber.open(str(path)) as pdf:
                 for page in pdf.pages:
                     t = page.extract_text(x_tolerance=3, y_tolerance=3)
                     if t:
                         pages.append(t)
-            return "\n".join(pages)
+            return "\n".join(pages), set()  # pdfplumber 不做颜色检测
 
     except ImportError:
         sys.exit("请先安装依赖：pip3 install pymupdf")
@@ -228,7 +242,7 @@ class Question:
 # 6. 核心解析
 # ─────────────────────────────────────────────────────────────────────────────
 
-def parse_text(raw_text: str) -> list[Question]:
+def parse_text(raw_text: str, colored_texts: set = None) -> list[Question]:
     # 规范化每行
     lines = [normalize_line(l) for l in raw_text.splitlines()]
     text  = '\n'.join(lines)
@@ -366,6 +380,30 @@ def parse_text(raw_text: str) -> list[Question]:
         if q.is_valid():
             questions.append(q)
 
+    # ── 6g. 颜色推断：对仍缺答案的选择题，用高亮选项颜色补充 ──
+    if colored_texts:
+        color_found = 0
+        for q in questions:
+            if q.answer or q.type == 'truefalse' or not q.options:
+                continue
+            hits = []
+            for key, val in q.options.items():
+                nval = normalize_for_compare(val)
+                for ct in colored_texts:
+                    nct = normalize_for_compare(ct)
+                    # 彩色文字包含选项内容，或选项内容包含彩色文字（≥4字时）
+                    if nval and nct and (nval in nct or (len(nval) >= 4 and nct in nval)):
+                        hits.append(key)
+                        break
+            if len(hits) == 1:
+                q.answer = hits[0]
+                color_found += 1
+            elif 1 < len(hits) <= 4 and q.type == 'multiple':
+                q.answer = ''.join(sorted(hits))
+                color_found += 1
+        if DEBUG and color_found:
+            print(f"  [颜色检测] 补充了 {color_found} 道题的答案")
+
     return questions
 
 
@@ -459,13 +497,15 @@ def main():
     for pdf in pdf_paths:
         print(f"正在解析: {pdf.name} ...", end='', flush=True)
         try:
-            raw = extract_text(pdf)
+            raw, colored = extract_text(pdf)
             if DEBUG:
                 print(f"\n{'='*60}\n{pdf.name} 原始文字:\n{'='*60}")
                 print(raw[:3000])
                 print("... (截断)")
+                if colored:
+                    print(f"\n[彩色文字样本]: {list(colored)[:10]}")
                 print('='*60)
-            qs = parse_text(raw)
+            qs = parse_text(raw, colored)
             by_file.append((str(pdf), qs))
             total_raw += len(qs)
             print(f" → 提取 {len(qs)} 题")
