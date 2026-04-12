@@ -11,6 +11,7 @@ PDF 题库解析器
   python3 parse_pdf.py --debug      # 同时打印每份 PDF 提取的原始文字
 """
 
+from __future__ import annotations
 import sys, re, json, unicodedata
 from pathlib import Path
 from difflib import SequenceMatcher
