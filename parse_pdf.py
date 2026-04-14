@@ -204,20 +204,14 @@ class Question:
         self.explanation = ''
 
     def finalize(self):
-        """去除答案括号、推断题型"""
-        # 清理题干中的内嵌答案标记（已提取）
+        """推断题型（不覆盖已由【单选】/【多选】标签显式设定的类型）"""
         self.stem = self.stem.strip()
-
         if self.type is None:
             if self.options:
-                if self.answer and len(self.answer) > 1:
-                    self.type = 'multiple'
-                else:
-                    self.type = 'single'
+                self.type = 'multiple' if (self.answer and len(self.answer) > 1) else 'single'
             else:
                 self.type = 'truefalse'
-        elif self.type == 'single' and self.answer and len(self.answer) > 1:
-            self.type = 'multiple'
+        # 不再根据答案长度强制覆盖已有类型
 
     def is_valid(self) -> bool:
         if not self.stem or len(self.stem) < 3:
